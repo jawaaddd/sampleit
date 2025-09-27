@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Backend API service
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - sampleit-network
+
+  # Frontend React Native Metro bundler
+  frontend:
+    build: ./frontend
+    ports:
+      - "8081:8081"  # Metro bundler
+      - "19000:19000"  # Expo/Metro debugger
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Prevent node_modules from being overwritten
+    environment:
+      - NODE_ENV=development
+      - REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
+    networks:
+      - sampleit-network
+    depends_on:
+      - backend
+
+  # Optional: Database service
+  # db:
+  #   image: postgres:13
+  #   environment:
+  #     POSTGRES_DB: sampleit
+  #     POSTGRES_USER: sampleit
+  #     POSTGRES_PASSWORD: sampleit
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - sampleit-network
+
+networks:
+  sampleit-network:
+    driver: bridge
+
+# volumes:
+#   postgres_data:

@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.vscode
+.idea
+*.log
+android/app/build
+ios/build
+ios/Pods
+android/build
+android/.gradle
+
