@@ -3,7 +3,7 @@ version: "3.9"
 services:
   app:
     build:
-      context: ./app
+      context: .           # the backend folder
       dockerfile: Dockerfile
     container_name: fastapi_app
     ports:
@@ -13,7 +13,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+psycopg2://app:pineapplel@db:5432/sampleit
     volumes:
-      - ./app:/code  # mount source for hot reload in dev
+      - ./app:/code       # mount source for hot reload in dev
       - ./requirements.txt:/code/requirements.txt
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
