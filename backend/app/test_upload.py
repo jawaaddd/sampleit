@@ -10,9 +10,10 @@ def main():
         return
 
     for fname in test_files:
-        print(f"Uploading {fname} ...")
-        url = upload_fileobj(fname, f"demo/{fname}")  # uploads to s3://bucket/demo/filename
-        print(f"✅ Uploaded {fname} → {url}")
+        with open(fname, "rb") as f:
+            print(f"Uploading {fname} ...")
+            url = upload_fileobj(f, fname)
+            print(f"✅ Uploaded {fname} → {url}")
 
 if __name__ == "__main__":
     main()

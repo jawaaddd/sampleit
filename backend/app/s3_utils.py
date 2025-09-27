@@ -12,7 +12,11 @@ s3 = boto3.client(
 
 BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
-def upload_fileobj(file_path, key):
-    with open(file_path, "rb") as f:
-        s3.upload_fileobj(f, BUCKET_NAME, key)
+def upload_fileobj(file_obj, filename: str, uuid):
+    key = f"samples/{uuid}-{filename}"
+    s3.upload_fileobj(
+        file_obj,
+        BUCKET_NAME,
+        key
+    )
     return f"https://{BUCKET_NAME}.s3.amazonaws.com/{key}"
