@@ -19,9 +19,9 @@ class User(Base):
     __tablename__ = "users"
 
     user_id = Column(
-        UUID(as_uuid=True),
+        Integer,
         primary_key=True,
-        server_default=text("gen_random_uuid()")
+        autoincrement=True
     )
     username = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
@@ -45,7 +45,7 @@ class Sample(Base):
     musical_key = Column(MusicalKey)
     tags = Column(ARRAY(String(50)))
     uploader_id = Column(
-        UUID(as_uuid=True),
+        Integer,
         ForeignKey("users.user_id", ondelete="SET NULL"),
         nullable=True
     )
@@ -57,9 +57,9 @@ class Sample(Base):
 
 class SavedSample(Base):
     __tablename__ = "saved_samples"
-
+    
     user_id = Column(
-        UUID(as_uuid=True),
+        Integer,
         ForeignKey("users.user_id", ondelete="CASCADE"),
         primary_key=True
     )
