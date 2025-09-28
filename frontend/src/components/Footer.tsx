@@ -37,14 +37,14 @@ const Footer: React.FC<FooterProps> = ({ currentSample, isPlaying, onPlayPause }
       {/* Details Section - matches Figma details structure */}
       <View style={styles.details}>
         <View style={styles.textIconGroup}>
-          <TouchableOpacity onPress={handleInfoPress} style={styles.infoButton}>
-            <Icon name="information-circle-outline" size={16} color="#fff" />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => console.log('Artist pressed')}>
             <Text style={styles.artistText}>{currentSample.artist}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => console.log('Song pressed')}>
             <Text style={styles.songText}>{currentSample.songName}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleInfoPress} style={styles.infoButton}>
+            <Icon name="information-circle-outline" size={16} color="#fff" />
           </TouchableOpacity>
         </View>
         <View style={styles.detailsBackground} />
@@ -125,6 +125,7 @@ const styles = StyleSheet.create({
   textIconGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   artistText: {
     color: '#fff',
@@ -142,7 +143,6 @@ const styles = StyleSheet.create({
   },
   infoButton: {
     padding: 4,
-    marginRight: 8,
   },
   detailsBackground: {
     height: 2,
@@ -152,15 +152,17 @@ const styles = StyleSheet.create({
   
   // Buttons Section Styles
   buttons: {
-    alignItems: 'center',
+    marginHorizontal: -20, // Extend beyond footer padding
+    paddingHorizontal: 0,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 10,
+    paddingHorizontal: 20,
   },
   buttonContainer: {
-    width: 50,
+    width: 60,
     height: 50,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,

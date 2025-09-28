@@ -7,8 +7,8 @@ import {
 import { Video, Audio } from 'expo-av';
 
 interface VideoPlayerProps {
-  videoUri: string;
-  audioUri: string;
+  videoUri: any; // Changed to any to handle require() objects
+  audioUri: any; // Changed to any to handle require() objects
   isActive: boolean;
   isPlaying: boolean;
   onPlayPause: (playing: boolean) => void;
@@ -24,6 +24,24 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const videoRef = useRef<Video>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
+  // Set up audio mode
+  useEffect(() => {
+    const setupAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      } catch (error) {
+        console.log('Failed to set audio mode', error);
+      }
+    };
+    setupAudio();
+  }, []);
+
   useEffect(() => {
     if (isActive) {
       // Initialize audio
@@ -31,10 +49,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         if (audioUri) {
           try {
             const { sound } = await Audio.Sound.createAsync(
-              { uri: audioUri },
-              { shouldPlay: false, isLooping: false }
+              audioUri,
+              { shouldPlay: isPlaying, isLooping: false }
             );
             soundRef.current = sound;
+            console.log('Audio loaded for active video');
           } catch (error) {
             console.log('Failed to load sound', error);
           }
@@ -46,6 +65,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (soundRef.current) {
         soundRef.current.unloadAsync();
         soundRef.current = null;
+        console.log('Audio unloaded for inactive video');
       }
     }
 
@@ -74,13 +94,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={1}>
       <Video
         ref={videoRef}
-        source={{ uri: videoUri }}
+        source={videoUri}
         style={styles.video}
         resizeMode="cover"
         isLooping
         shouldPlay={isPlaying}
-        volume={1.0}
+        volume={0.0}
         rate={1.0}
+        muted={true}
       />
       
       {/* Play/Pause overlay */}

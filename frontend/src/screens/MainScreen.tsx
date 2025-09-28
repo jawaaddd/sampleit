@@ -7,109 +7,52 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../components/Header';
-import VideoPlayer from '../components/VideoPlayer';
+import VideoPlayer from '../components/video/VideoPlayer';
 import Footer from '../components/Footer';
-import VisualizerBackground from '../components/VisualizerBackground';
 
 const { width, height } = Dimensions.get('window');
 
-// Sample data structure - update paths to your actual asset files
+// Sample data structure - using your actual local asset files
 const sampleData = [
   {
     id: '1',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Kanye West',
-    songName: 'runaway',
-    genre: 'Hip Hop',
+    videoUri: require('../../assets/samples/videos/clairo_sofia.mp4'),
+    audioUri: require('../../assets/samples/audio/clairo_sofia.mp3'),
+    artist: 'Clairo',
+    songName: 'Sofia',
+    genre: 'Indie Pop',
   },
   {
     id: '2',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Daft Punk',
-    songName: 'One More Time',
+    videoUri: require('../../assets/samples/videos/feng_leftforusa.mp4'),
+    audioUri: require('../../assets/samples/audio/feng_leftforusa.mp3'),
+    artist: 'Feng',
+    songName: 'Left for USA',
     genre: 'Electronic',
   },
   {
     id: '3',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_5mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'The Weeknd',
-    songName: 'Blinding Lights',
-    genre: 'Pop',
+    videoUri: require('../../assets/samples/videos/jpegmafia_ghostofrankingdread.mp4'),
+    audioUri: require('../../assets/samples/audio/jpegmafia_ghostofrankingdread.mp3'),
+    artist: 'JPEGMAFIA',
+    songName: 'Ghost of Ranking Dread',
+    genre: 'Experimental Hip Hop',
   },
   {
     id: '4',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Tame Impala',
-    songName: 'The Less I Know The Better',
-    genre: 'Psychedelic Rock',
+    videoUri: require('../../assets/samples/videos/playboicarti_longtime.mp4'),
+    audioUri: require('../../assets/samples/audio/playboicarti_longtime.mp3'),
+    artist: 'Playboi Carti',
+    songName: 'Long Time',
+    genre: 'Trap',
   },
   {
     id: '5',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Frank Ocean',
-    songName: 'Nights',
-    genre: 'R&B',
-  },
-  {
-    id: '6',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_5mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Kendrick Lamar',
-    songName: 'HUMBLE.',
-    genre: 'Hip Hop',
-  },
-  {
-    id: '7',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Flume',
-    songName: 'Never Be Like You',
-    genre: 'Electronic',
-  },
-  {
-    id: '8',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Tyler, The Creator',
-    songName: 'EARFQUAKE',
-    genre: 'Hip Hop',
-  },
-  {
-    id: '9',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_5mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Billie Eilish',
-    songName: 'bad guy',
-    genre: 'Pop',
-  },
-  {
-    id: '10',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Mac Miller',
-    songName: 'Self Care',
-    genre: 'Hip Hop',
-  },
-  {
-    id: '11',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Childish Gambino',
-    songName: 'Redbone',
-    genre: 'R&B',
-  },
-  {
-    id: '12',
-    videoUri: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_5mb.mp4',
-    audioUri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
-    artist: 'Travis Scott',
-    songName: 'SICKO MODE',
-    genre: 'Hip Hop',
+    videoUri: require('../../assets/samples/videos/yeule_poisonarrow.mp4'),
+    audioUri: require('../../assets/samples/audio/yeule_poisonarrow.mp3'),
+    artist: 'yeule',
+    songName: 'Poison Arrow',
+    genre: 'Ambient Pop',
   },
 ];
 
@@ -140,7 +83,6 @@ const MainScreen = () => {
         isPlaying={isPlaying}
         onPlayPause={setIsPlaying}
       />
-      <VisualizerBackground isActive={index === currentIndex} />
     </View>
   );
 
