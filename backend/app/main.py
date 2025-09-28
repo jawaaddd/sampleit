@@ -34,6 +34,9 @@ class SavedSampleResponse(BaseModel):
     user_id: str
     save_date: str
 
+class SaveSampleRequest(BaseModel):
+    user_id: int
+    sample_id: str
 
 
 app = FastAPI()
@@ -57,10 +60,22 @@ def getAllSamples(db: Session = Depends(get_db)):
     ]
     return result
 
-# Get a sample by its sample_id
-@app.get("/samples/{sample_id}")
-def getSample(sample_id: str):
-    return {"sample": sample_id}
+#get sample by id
+@app.get("/samples/{sample_id}", response_model=SampleResponse)
+def getSample(sample_id: str, db: Session = Depends(get_db)):
+    sample = db.query(Sample).filter(Sample.sample_id == sample_id).first()
+    if not sample:
+        raise HTTPException(status_code=404, detail="Sample not found")
+    
+    return SampleResponse(
+        id=str(sample.sample_id),
+        name=sample.sample_name,
+        sample_url=sample.sample_url,
+        ext=sample.sample_name.split(".")[-1],
+        music_key=sample.musical_key,
+        bpm=sample.bpm,
+        tags=sample.tags or []
+    )
 
 @app.post("/samples/", response_model=SampleResponse)
 async def uploadSample(sampleFile: UploadFile, tags: str = Form(...), db: Session = Depends(get_db)):
@@ -109,13 +124,21 @@ async def uploadSample(sampleFile: UploadFile, tags: str = Form(...), db: Sessio
         raise HTTPException(status_code=500, detail=str(e))
 
 # Get all the samples a user has saved
-@app.get("/user/saves/")
-def getSavedSamples(user_id: str):
-    return {}
+@app.get("/user/saves/", response_model=List[SavedSampleResponse])
+def getSavedSamples(user_id: str, db: Session = Depends(get_db)):
+    saved = db.query(SavedSample).filter(SavedSample.user_id == user_id).all()
+    return [
+        SavedSampleResponse(
+            sample_id=str(s.sample_id),
+            user_id=str(s.user_id),
+            save_date=s.save_date.isoformat()
+        )
+        for s in saved
+    ]
 
 @app.post("/user/saves/", response_model=SavedSampleResponse)
-def saveSample(user_id: str, sample_id: str, db: Session = Depends(get_db)):
-    saved = SavedSample(user_id=user_id, sample_id=sample_id)
+def saveSample(request: SaveSampleRequest, db: Session = Depends(get_db)):
+    saved = SavedSample(user_id=request.user_id, sample_id=request.sample_id)
     db.add(saved)
     db.commit()
     db.refresh(saved)
@@ -124,6 +147,7 @@ def saveSample(user_id: str, sample_id: str, db: Session = Depends(get_db)):
         user_id=str(saved.user_id),
         save_date=saved.save_date.isoformat()
     )
+
 
 @app.on_event("startup")
 def on_startup():
