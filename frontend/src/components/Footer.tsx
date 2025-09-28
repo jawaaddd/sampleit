@@ -20,6 +20,7 @@ interface FooterProps {
   onPlayPause: (playing: boolean) => void;
 }
 
+// Footer Component - matches Figma structure: footer → details, Buttons
 const Footer: React.FC<FooterProps> = ({ currentSample, isPlaying, onPlayPause }) => {
   const handleInfoPress = () => {
     // TODO: Implement info modal
@@ -32,79 +33,81 @@ const Footer: React.FC<FooterProps> = ({ currentSample, isPlaying, onPlayPause }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Song Information */}
-      <View style={styles.songInfo}>
-        <TouchableOpacity onPress={() => console.log('Artist pressed')}>
-          <Text style={styles.artistText}>{currentSample.artist}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => console.log('Song pressed')}>
-          <Text style={styles.songText}>{currentSample.songName}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleInfoPress} style={styles.infoButton}>
-          <Icon name="information-circle-outline" size={16} color="#fff" />
-        </TouchableOpacity>
+    <View style={styles.footer}>
+      {/* Details Section - matches Figma details structure */}
+      <View style={styles.details}>
+        <View style={styles.textIconGroup}>
+          <TouchableOpacity onPress={handleInfoPress} style={styles.infoButton}>
+            <Icon name="information-circle-outline" size={16} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => console.log('Artist pressed')}>
+            <Text style={styles.artistText}>{currentSample.artist}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => console.log('Song pressed')}>
+            <Text style={styles.songText}>{currentSample.songName}</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.detailsBackground} />
       </View>
 
-      {/* Producer Controls */}
-      <View style={styles.controlsContainer}>
-        {/* Top Row */}
-        <View style={styles.controlsRow}>
+      {/* Buttons Section - matches Figma Buttons structure */}
+      <View style={styles.buttons}>
+        {/* Button Row 1 */}
+        <View style={styles.buttonRow}>
           <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => handleControlPress('upload')}
+            style={[styles.buttonContainer, styles.bShare]}
+            onPress={() => handleControlPress('share')}
           >
-            <Icon name="cloud-upload-outline" size={20} color="#fff" />
+            <Icon name="share-outline" size={20} color="#fff" />
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={styles.controlButton}
+            style={[styles.buttonContainer, styles.bChop]}
             onPress={() => handleControlPress('chop')}
           >
             <Icon name="cut-outline" size={20} color="#fff" />
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => handleControlPress('share')}
+            style={[styles.buttonContainer, styles.bCloud]}
+            onPress={() => handleControlPress('upload')}
           >
-            <Icon name="share-outline" size={20} color="#fff" />
+            <Icon name="cloud-upload-outline" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
 
-        {/* Bottom Row */}
-        <View style={styles.controlsRow}>
+        {/* Button Row 2 */}
+        <View style={styles.buttonRow}>
           <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => handleControlPress('volume')}
+            style={[styles.buttonContainer, styles.bUp]}
+            onPress={() => handleControlPress('pitch')}
           >
-            <Icon name="volume-high-outline" size={20} color="#fff" />
+            <Icon name="trending-up-outline" size={20} color="#fff" />
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={styles.controlButton}
+            style={[styles.buttonContainer, styles.bClock]}
             onPress={() => handleControlPress('timer')}
           >
             <Icon name="time-outline" size={20} color="#fff" />
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => handleControlPress('pitch')}
+            style={[styles.buttonContainer, styles.bVol]}
+            onPress={() => handleControlPress('volume')}
           >
-            <Icon name="trending-up-outline" size={20} color="#fff" />
+            <Icon name="volume-high-outline" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
+        
+        <View style={styles.buttonsBackground} />
       </View>
-
-      {/* Scroll Indicator */}
-      <View style={styles.scrollIndicator} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -114,10 +117,14 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingBottom: 40,
   },
-  songInfo: {
+  
+  // Details Section Styles
+  details: {
+    marginBottom: 20,
+  },
+  textIconGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
   },
   artistText: {
     color: '#fff',
@@ -135,16 +142,24 @@ const styles = StyleSheet.create({
   },
   infoButton: {
     padding: 4,
+    marginRight: 8,
   },
-  controlsContainer: {
+  detailsBackground: {
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginTop: 8,
+  },
+  
+  // Buttons Section Styles
+  buttons: {
     alignItems: 'center',
   },
-  controlsRow: {
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 10,
   },
-  controlButton: {
+  buttonContainer: {
     width: 50,
     height: 50,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -153,13 +168,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 8,
   },
-  scrollIndicator: {
-    width: 30,
-    height: 2,
-    backgroundColor: '#fff',
-    alignSelf: 'center',
-    marginTop: 10,
-    opacity: 0.6,
+  
+  // Individual Button Styles (matching Figma naming)
+  bShare: {
+    // Share button specific styles
+  },
+  bChop: {
+    // Chop button specific styles
+  },
+  bCloud: {
+    // Cloud/Upload button specific styles
+  },
+  bUp: {
+    // Pitch/Up button specific styles
+  },
+  bClock: {
+    // Timer/Clock button specific styles
+  },
+  bVol: {
+    // Volume button specific styles
+  },
+  
+  buttonsBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    zIndex: -1,
   },
 });
 

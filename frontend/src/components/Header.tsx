@@ -8,48 +8,51 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/Ionicons';
 
+// Header Component - matches Figma structure: header → Tabs → Circle, Menu, Bookmark
 const Header = () => {
   return (
-    <View style={styles.container}>
+    <View style={styles.header}>
       <StatusBar style="light" backgroundColor="transparent" translucent />
       
-      {/* Saved icon */}
-      <TouchableOpacity style={styles.iconButton}>
-        <Icon name="bookmark-outline" size={20} color="#fff" />
-      </TouchableOpacity>
-      
-      {/* Home/Center icon */}
-      <TouchableOpacity style={styles.centerButton}>
-        <Icon name="radio-button-on-outline" size={24} color="#fff" />
-      </TouchableOpacity>
-      
-      {/* Menu icon */}
-      <TouchableOpacity style={styles.iconButton}>
-        <Icon name="menu" size={20} color="#fff" />
-      </TouchableOpacity>
+      {/* Tabs Container - matches Figma Tabs section */}
+      <View style={styles.tabs}>
+        {/* Saved tab - Left */}
+        <TouchableOpacity style={styles.tabButton}>
+          <Icon name="bookmark-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+        
+        {/* Home tab - Center */}
+        <TouchableOpacity style={styles.tabButton}>
+          <Icon name="radio-button-on-outline" size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        {/* Genre Search tab - Right */}
+        <TouchableOpacity style={styles.tabButton}>
+          <Icon name="search-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
-    backgroundColor: 'transparent',
+  header: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 1000,
+    paddingTop: 40,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
   },
-  iconButton: {
-    padding: 8,
+  tabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
   },
-  centerButton: {
+  tabButton: {
     padding: 8,
   },
 });

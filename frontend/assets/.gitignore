@@ -1,0 +1,19 @@
+# Ignore large media files by default
+# Uncomment the lines below if you want to ignore all media files
+
+# Videos
+*.mp4
+*.mov
+*.avi
+
+# Audio
+*.mp3
+*.wav
+*.aac
+
+# Or keep some sample files and ignore others
+# samples/videos/*.mp4
+# samples/audio/*.mp3
+
+# Keep the README and folder structure
+!README.md
