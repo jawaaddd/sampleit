@@ -10,7 +10,7 @@ class Sample(BaseModel):
     ext: str
     music_key: Union[str, None] = None
     bpm: Union[int, None] = None
-    tags: List[str]
+    tags: list[str]
 
 
 app = FastAPI()
