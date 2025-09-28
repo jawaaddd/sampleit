@@ -8,27 +8,41 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/Ionicons';
 
+interface HeaderProps {
+  currentScreen?: 'main' | 'saved';
+}
+
 // Header Component - matches Figma structure: header → Tabs → Circle, Menu, Bookmark
-const Header = () => {
+const Header: React.FC<HeaderProps> = ({ currentScreen = 'main' }) => {
+  const isSavedScreen = currentScreen === 'saved';
+  
   return (
     <View style={styles.header}>
       <StatusBar style="light" backgroundColor="transparent" translucent />
       
       {/* Tabs Container - matches Figma Tabs section */}
       <View style={styles.tabs}>
-        {/* Saved tab - Left */}
+        {/* Search tab - Left (swapped with bookmark) */}
         <TouchableOpacity style={styles.tabButton}>
-          <Icon name="bookmark-outline" size={20} color="#fff" />
+          <Icon name="search-outline" size={20} color="#fff" />
         </TouchableOpacity>
         
         {/* Home tab - Center */}
         <TouchableOpacity style={styles.tabButton}>
-          <Icon name="radio-button-on-outline" size={24} color="#fff" />
+          <Icon 
+            name={isSavedScreen ? "ellipse-outline" : "ellipse"} 
+            size={24} 
+            color="#fff" 
+          />
         </TouchableOpacity>
         
-        {/* Genre Search tab - Right */}
+        {/* Saved tab - Right (swapped with search) */}
         <TouchableOpacity style={styles.tabButton}>
-          <Icon name="search-outline" size={20} color="#fff" />
+          <Icon 
+            name={isSavedScreen ? "bookmark" : "bookmark-outline"} 
+            size={20} 
+            color="#fff" 
+          />
         </TouchableOpacity>
       </View>
     </View>
