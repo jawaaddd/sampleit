@@ -1,72 +1,112 @@
-from typing import Union
-from fastapi import FastAPI, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
+from typing import Union, List
+from fastapi import FastAPI, UploadFile, HTTPException, Depends, Form
 from pydantic import BaseModel
+import uuid as uuid_lib
+import s3_utils
+from Models import Sample
+from DBManager import SessionLocal, init_db, Base, engine
+from sqlalchemy.orm import Session
+#from helpers import analyze_audio
+import json
 
-class Sample(BaseModel):
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+class SampleResponse(BaseModel):
     id: str
     name: str
     sample_url: str
     ext: str
     music_key: Union[str, None] = None
     bpm: Union[int, None] = None
-    tags: list[str]
+    tags: List[str] = []
 
-app = FastAPI(title="Sample It API", version="1.0.0")
+    class Config:
+        orm_mode = True
 
-# Configure CORS for React Native
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URLs
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class SavedSampleResponse(BaseModel):
+    sample_id: str
+    user_id: str
+    save_date: str
 
-@app.get("/")
-async def root():
-    return {"message": "Sample It API is running!"}
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+
+app = FastAPI()
+
 
 # Get all the samples in the database and return an array of sample_ids
-@app.get("/samples/")
-def getAllSamples():
-    # TODO: Replace with actual database query
-    return [
-        {
-            "id": "1",
-            "artist": "Kanye West",
-            "song_name": "runaway",
-            "genre": "Hip Hop",
-            "video_url": "/videos/sample1.mp4",
-            "audio_url": "/audio/sample1.mp3"
-        },
-        {
-            "id": "2", 
-            "artist": "Daft Punk",
-            "song_name": "One More Time",
-            "genre": "Electronic",
-            "video_url": "/videos/sample2.mp4",
-            "audio_url": "/audio/sample2.mp3"
-        }
+@app.get("/samples/", response_model=List[SampleResponse])
+def getAllSamples(db: Session = Depends(get_db)):
+    samples = db.query(Sample).all()
+    result = [
+        SampleResponse(
+            id=str(s.sample_id),
+            name=s.sample_name,
+            sample_url=s.sample_url,
+            ext=s.sample_name.split(".")[-1],
+            music_key=s.musical_key,
+            bpm=s.bpm,
+            tags=s.tags or []
+        )
+        for s in samples
     ]
+    return result
 
 # Get a sample by its sample_id
 @app.get("/samples/{sample_id}")
 def getSample(sample_id: str):
     return {"sample": sample_id}
 
-# Upload a sample
-@app.post("/samples/")
-async def uploadSample(sampleFile: UploadFile):
-    # TODO: Implement S3 upload and database update
-    return {
-        "Success": "true",
-        "message": "Sample upload endpoint ready"
-    }
+@app.post("/samples/", response_model=SampleResponse)
+async def uploadSample(sampleFile: UploadFile, tags: str = Form(...), db: Session = Depends(get_db)):
+    try:
+        tag_list = json.loads(tags)
+        # Generate UUID for S3 key & DB primary key
+        sample_uuid = str(uuid_lib.uuid4())
+
+        #bpm, musical_key = analyze_audio(sampleFile.file)
+
+        # Reset file pointer after reading for librosa
+        sampleFile.file.seek(0)
+
+        # Upload to S3
+        s3_url = s3_utils.upload_fileobj(
+            file_obj=sampleFile.file,
+            filename=sampleFile.filename,
+            uuid=sample_uuid
+        )
+
+        # Insert into DB (fake uploader_id for demo)
+        uploader_id = None
+        new_sample = Sample(
+            sample_id=sample_uuid,
+            sample_name=sampleFile.filename,
+            sample_url=s3_url,
+            tags=tag_list,
+            uploader_id=uploader_id
+        )
+
+        db.add(new_sample)
+        db.commit()
+        db.refresh(new_sample)
+
+        return SampleResponse(
+            id=str(new_sample.sample_id),
+            name=new_sample.sample_name,
+            sample_url=new_sample.sample_url,
+            ext=new_sample.sample_name.split(".")[-1],
+            #music_key=new_sample.musical_key,
+            #bpm=new_sample.bpm,
+            tags=new_sample.tags or []
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Get all the samples a user has saved
 @app.get("/user/saves/")
@@ -77,3 +117,7 @@ def getSavedSamples(user_id: str):
 @app.post("/user/saves/")
 def saveSample(user_id: str, sample_id: str):
     return {}
+
+@app.on_event("startup")
+def on_startup():
+    init_db()  # ensures all tables exist when FastAPI starts
