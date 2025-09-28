@@ -1,12 +1,13 @@
-from typing import Union
-from fastapi import FastAPI, UploadFile, HTTPException, Depends
+from typing import Union, List
+from fastapi import FastAPI, UploadFile, HTTPException, Depends, Form
 from pydantic import BaseModel
 import uuid as uuid_lib
 import s3_utils
-import Models
-from database import SessionLocal
+from Models import Sample
+from DBManager import SessionLocal, init_db, Base, engine
 from sqlalchemy.orm import Session
-
+#from helpers import analyze_audio
+import json
 
 def get_db():
     db = SessionLocal()
@@ -16,14 +17,17 @@ def get_db():
         db.close()
 
 
-class Sample(BaseModel):
+class SampleResponse(BaseModel):
     id: str
     name: str
     sample_url: str
     ext: str
     music_key: Union[str, None] = None
     bpm: Union[int, None] = None
-    tags: list[str]
+    tags: List[str] = []
+
+    class Config:
+        orm_mode = True
 
 
 app = FastAPI()
@@ -39,47 +43,48 @@ def getAllSamples():
 def getSample(sample_id: str):
     return {"sample": sample_id}
 
-# Upload a sample
-@app.post("/samples/")
-async def uploadSample(sampleFile: UploadFile):
-    file_uuid = str(uuid_lib.uuid4())
-    print("FILENAME:", sampleFile.filename, "UUID:", file_uuid)
-    print("DEBUG file:", sampleFile.file)
-    s3Link = s3_utils.upload_fileobj(
-        file_obj=sampleFile.file,
-        filename=sampleFile.filename,
-        uuid=file_uuid
-    )
-    # TODO: Update the database
+@app.post("/samples/", response_model=SampleResponse)
+async def uploadSample(sampleFile: UploadFile, tags: str = Form(...), db: Session = Depends(get_db)):
     try:
-        # Generate UUID for this sample (used in S3 key)
+        tag_list = json.loads(tags)
+        # Generate UUID for S3 key & DB primary key
         sample_uuid = str(uuid_lib.uuid4())
 
+        #bpm, musical_key = analyze_audio(sampleFile.file)
+
+        # Reset file pointer after reading for librosa
+        sampleFile.file.seek(0)
+
         # Upload to S3
-        s3_url = upload_fileobj(
+        s3_url = s3_utils.upload_fileobj(
             file_obj=sampleFile.file,
             filename=sampleFile.filename,
             uuid=sample_uuid
         )
 
-        # Insert new Sample into DB
+        # Insert into DB (fake uploader_id for demo)
+        uploader_id = None
         new_sample = Sample(
-            sample_id=sample_uuid,        # use UUID for primary key
+            sample_id=sample_uuid,
             sample_name=sampleFile.filename,
             sample_url=s3_url,
-            uploader_id=uploader_id       # can be None for fake/demo user
+            tags=tag_list,
+            uploader_id=uploader_id
         )
 
         db.add(new_sample)
         db.commit()
         db.refresh(new_sample)
 
-        return {
-            "sample_id": str(new_sample.sample_id),
-            "sample_name": new_sample.sample_name,
-            "sample_url": new_sample.sample_url,
-            "upload_date": new_sample.upload_date
-        }
+        return SampleResponse(
+            id=str(new_sample.sample_id),
+            name=new_sample.sample_name,
+            sample_url=new_sample.sample_url,
+            ext=new_sample.sample_name.split(".")[-1],
+            #music_key=new_sample.musical_key,
+            #bpm=new_sample.bpm,
+            tags=new_sample.tags or []
+        )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -93,3 +98,7 @@ def getSavedSamples(user_id: str):
 @app.post("/user/saves/")
 def saveSample(user_id: str, sample_id: str):
     return {}
+
+@app.on_event("startup")
+def on_startup():
+    init_db()  # ensures all tables exist when FastAPI starts
