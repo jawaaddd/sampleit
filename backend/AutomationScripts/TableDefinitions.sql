@@ -1,4 +1,4 @@
-CREATE TYPE IF NOT EXISTS musicalkey AS ENUM(
+CREATE TYPE musicalkey AS ENUM(
     'C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 
     'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B',
     'Cm', 'C#m', 'Dbm', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm',

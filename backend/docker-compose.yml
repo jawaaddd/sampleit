@@ -12,6 +12,10 @@ services:
       - db
     environment:
       - DATABASE_URL=postgresql+psycopg2://app:pineapplel@db:5432/sampleit
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
     volumes:
       - ./app:/code       # mount source for hot reload in dev
       - ./requirements.txt:/code/requirements.txt
