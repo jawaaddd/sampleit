@@ -6,7 +6,7 @@ CREATE TYPE musicalkey AS ENUM(
 );
 
 CREATE TABLE IF NOT EXISTS users (
-    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL
 );
@@ -18,12 +18,12 @@ CREATE TABLE IF NOT EXISTS samples (
     sample_url VARCHAR(500),
     musical_key musicalkey,
     tags VARCHAR(50)[],
-    uploader_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    uploader_id INTEGER REFERENCES users(user_id) ON DELETE SET NULL,
     upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS saved_samples (
-    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
     sample_id UUID REFERENCES samples(sample_id) ON DELETE CASCADE,
     save_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, sample_id)

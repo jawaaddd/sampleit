@@ -3,7 +3,7 @@ from fastapi import FastAPI, UploadFile, HTTPException, Depends, Form
 from pydantic import BaseModel
 import uuid as uuid_lib
 import s3_utils
-from Models import Sample
+from Models import Sample, SavedSample
 from DBManager import SessionLocal, init_db, Base, engine
 from sqlalchemy.orm import Session
 #from helpers import analyze_audio
@@ -82,7 +82,7 @@ async def uploadSample(sampleFile: UploadFile, tags: str = Form(...), db: Sessio
         )
 
         # Insert into DB (fake uploader_id for demo)
-        uploader_id = None
+        uploader_id = 1
         new_sample = Sample(
             sample_id=sample_uuid,
             sample_name=sampleFile.filename,
@@ -113,10 +113,17 @@ async def uploadSample(sampleFile: UploadFile, tags: str = Form(...), db: Sessio
 def getSavedSamples(user_id: str):
     return {}
 
-# Save a samples for a user
-@app.post("/user/saves/")
-def saveSample(user_id: str, sample_id: str):
-    return {}
+@app.post("/user/saves/", response_model=SavedSampleResponse)
+def saveSample(user_id: str, sample_id: str, db: Session = Depends(get_db)):
+    saved = SavedSample(user_id=user_id, sample_id=sample_id)
+    db.add(saved)
+    db.commit()
+    db.refresh(saved)
+    return SavedSampleResponse(
+        sample_id=str(saved.sample_id),
+        user_id=str(saved.user_id),
+        save_date=saved.save_date.isoformat()
+    )
 
 @app.on_event("startup")
 def on_startup():
