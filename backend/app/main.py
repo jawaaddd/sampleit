@@ -29,14 +29,33 @@ class SampleResponse(BaseModel):
     class Config:
         orm_mode = True
 
+class SavedSampleResponse(BaseModel):
+    sample_id: str
+    user_id: str
+    save_date: str
+
+
 
 app = FastAPI()
 
 
 # Get all the samples in the database and return an array of sample_ids
-@app.get("/samples/")
-def getAllSamples():
-    return {}
+@app.get("/samples/", response_model=List[SampleResponse])
+def getAllSamples(db: Session = Depends(get_db)):
+    samples = db.query(Sample).all()
+    result = [
+        SampleResponse(
+            id=str(s.sample_id),
+            name=s.sample_name,
+            sample_url=s.sample_url,
+            ext=s.sample_name.split(".")[-1],
+            music_key=s.musical_key,
+            bpm=s.bpm,
+            tags=s.tags or []
+        )
+        for s in samples
+    ]
+    return result
 
 # Get a sample by its sample_id
 @app.get("/samples/{sample_id}")
