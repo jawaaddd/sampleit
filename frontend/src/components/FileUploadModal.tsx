@@ -117,8 +117,8 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
 
       // Upload to backend - try different URLs
       const urls = [
+        'http://35.0.131.210:8000/samples/',
         'http://localhost:8000/samples/',
-        'http://10.0.0.60:8000/samples/',
         'http://172.20.208.1:8000/samples/'
       ];
 
@@ -187,7 +187,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
       const formData = new FormData();
       formData.append('tags', JSON.stringify(['test']));
       
-      const response = await fetch('http://localhost:8000/samples/', {
+      const response = await fetch('http://35.0.131.210:8000/samples/', {
         method: 'POST',
         body: formData,
       });

@@ -21,8 +21,8 @@
       }
     },
     "plugins": [
-      "expo-av"
+      "expo-av",
+      "expo-audio"
     ]
   }
 }
-

@@ -18,42 +18,30 @@ import Icon from 'react-native-vector-icons/Ionicons';
 const { width, height } = Dimensions.get('window');
 
 // API Response Types
-interface SavedSampleResponse {
-  sample_id: string;
-  user_id: string;
-  save_date: string;
+interface BackendSample {
+  id: number;
+  name: string;
+  sample_url: string;
+  tags: string | string[];
 }
 
-interface SampleDetailResponse {
+interface Sample {
   id: string;
-  name: string;
-  sample_url: string;
-  ext: string;
-  music_key: string | null;
-  bpm: number | null;
-  tags: string[];
+  audioUrl: string;
+  artist: string;
+  songName: string;
+  genre: string;
 }
 
-interface SavedSampleWithDetails {
-  sample_id: string;
-  user_id: string;
-  save_date: string;
-  name: string;
-  sample_url: string;
-  ext: string;
-  music_key: string | null;
-  bpm: number | null;
-  tags: string[];
-}
-
-interface SavedSamplesScreenProps {
+interface LibrarySearchScreenProps {
   onBack: () => void;
+  initialSearchQuery?: string;
 }
 
-const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
-  const [savedSamples, setSavedSamples] = useState<SavedSampleWithDetails[]>([]);
-  const [filteredSamples, setFilteredSamples] = useState<SavedSampleWithDetails[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+const LibrarySearchScreen: React.FC<LibrarySearchScreenProps> = ({ onBack, initialSearchQuery = '' }) => {
+  const [allSamples, setAllSamples] = useState<Sample[]>([]);
+  const [filteredSamples, setFilteredSamples] = useState<Sample[]>([]);
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [loading, setLoading] = useState(true);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -62,117 +50,7 @@ const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
   // Animation for swipe back
   const swipeBackAnimation = useRef(new Animated.Value(0)).current;
 
-  // Set up audio mode
-  useEffect(() => {
-    const setupAudio = async () => {
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          staysActiveInBackground: false,
-          playsInSilentModeIOS: true,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-        });
-      } catch (error) {
-        console.log('Failed to set up audio mode:', error);
-      }
-    };
-    setupAudio();
-
-    // Cleanup audio when component unmounts
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.unloadAsync();
-      }
-    };
-  }, []);
-
-  // Fetch saved samples and their details
-  useEffect(() => {
-    const fetchSavedSamples = async () => {
-      try {
-        console.log('Fetching saved samples...');
-        
-        // First, get the list of saved sample IDs
-        const savedResponse = await fetch('http://35.0.131.210:8000/user/saves/?user_id=1');
-        if (!savedResponse.ok) {
-          throw new Error(`HTTP error! status: ${savedResponse.status}`);
-        }
-        
-        const savedSamplesList: SavedSampleResponse[] = await savedResponse.json();
-        console.log('Saved samples list:', savedSamplesList);
-
-        // Then, fetch details for each saved sample
-        const samplesWithDetails: SavedSampleWithDetails[] = [];
-        
-        for (const savedSample of savedSamplesList) {
-          try {
-            const detailResponse = await fetch(`http://35.0.131.210:8000/samples/${savedSample.sample_id}`);
-            if (detailResponse.ok) {
-              const sampleDetails: SampleDetailResponse = await detailResponse.json();
-              samplesWithDetails.push({
-                ...savedSample,
-                ...sampleDetails,
-              });
-            }
-          } catch (error) {
-            console.log(`Failed to fetch details for sample ${savedSample.sample_id}:`, error);
-          }
-        }
-
-        console.log('Samples with details:', samplesWithDetails);
-        setSavedSamples(samplesWithDetails);
-        setFilteredSamples(samplesWithDetails); // Initialize filtered samples
-      } catch (error) {
-        console.error('Failed to fetch saved samples:', error);
-        Alert.alert('Error', 'Failed to load saved samples');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSavedSamples();
-  }, []);
-
-  // Filter samples based on search query
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredSamples(savedSamples);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase().trim();
-    const filtered = savedSamples.filter(sample => {
-      const { artist, song } = formatSampleName(sample.name);
-      
-      // Search in song name
-      const songMatch = song.toLowerCase().includes(query);
-      
-      // Search in artist name
-      const artistMatch = artist.toLowerCase().includes(query);
-      
-      // Search in tags
-      const tagMatch = sample.tags.some(tag => 
-        tag.toLowerCase().includes(query)
-      );
-      
-      // Search in full filename (including underscore format)
-      const filenameMatch = sample.name.toLowerCase().includes(query);
-      
-      // Search in filename with underscores converted to spaces
-      const filenameWithSpaces = sample.name.replace(/_/g, ' ').toLowerCase();
-      const filenameSpacesMatch = filenameWithSpaces.includes(query);
-      
-      // Search in filename with spaces converted to underscores
-      const filenameWithUnderscores = sample.name.replace(/ /g, '_').toLowerCase();
-      const filenameUnderscoresMatch = filenameWithUnderscores.includes(query);
-      
-      return songMatch || artistMatch || tagMatch || filenameMatch || filenameSpacesMatch || filenameUnderscoresMatch;
-    });
-    
-    setFilteredSamples(filtered);
-  }, [searchQuery, savedSamples]);
-
+  // Format sample name to extract artist and song
   const formatSampleName = (name: string) => {
     // Remove file extension
     const withoutExt = name.replace(/\.[^/.]+$/, '');
@@ -212,6 +90,111 @@ const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
     };
   };
 
+  // Update search query when initialSearchQuery prop changes
+  useEffect(() => {
+    setSearchQuery(initialSearchQuery);
+  }, [initialSearchQuery]);
+
+  // Set up audio mode
+  useEffect(() => {
+    const setupAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      } catch (error) {
+        console.log('Failed to set up audio mode:', error);
+      }
+    };
+    setupAudio();
+
+    // Cleanup audio when component unmounts
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.unloadAsync();
+      }
+    };
+  }, []);
+
+  // Fetch all samples from the library
+  useEffect(() => {
+    const fetchAllSamples = async () => {
+      try {
+        console.log('Fetching all samples from library...');
+        
+        const response = await fetch('http://35.0.131.210:8000/samples/');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const backendSamples: BackendSample[] = await response.json();
+        console.log('Backend samples received:', backendSamples);
+        
+        // Transform backend data to frontend format
+        const transformedSamples: Sample[] = backendSamples.map((sample) => {
+          const { artist, song } = formatSampleName(sample.name);
+          
+          // Handle tags - could be string or array
+          let genre = 'Unknown Genre';
+          if (sample.tags) {
+            if (Array.isArray(sample.tags)) {
+              genre = sample.tags.join(', ');
+            } else if (typeof sample.tags === 'string') {
+              genre = sample.tags;
+            }
+          }
+          
+          return {
+            id: sample.id.toString(),
+            audioUrl: sample.sample_url,
+            artist: artist,
+            songName: song,
+            genre: genre,
+          };
+        });
+        
+        console.log('Transformed samples:', transformedSamples);
+        setAllSamples(transformedSamples);
+        setFilteredSamples(transformedSamples); // Initialize filtered samples
+      } catch (error) {
+        console.error('Failed to fetch samples:', error);
+        Alert.alert('Error', 'Failed to load library samples');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllSamples();
+  }, []);
+
+  // Filter samples based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredSamples(allSamples);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = allSamples.filter(sample => {
+      // Search in song name
+      const songMatch = sample.songName.toLowerCase().includes(query);
+      
+      // Search in artist name
+      const artistMatch = sample.artist.toLowerCase().includes(query);
+      
+      // Search in genre/tags
+      const genreMatch = sample.genre && sample.genre.toLowerCase().includes(query);
+      
+      return songMatch || artistMatch || genreMatch;
+    });
+    
+    setFilteredSamples(filtered);
+  }, [searchQuery, allSamples]);
+
   // Handle swipe back gesture
   const onSwipeBackGesture = (event: any) => {
     const { translationX, state } = event.nativeEvent;
@@ -245,10 +228,10 @@ const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
   };
 
   // Play/pause audio
-  const togglePlayback = async (sample: SavedSampleWithDetails) => {
+  const togglePlayback = async (sample: Sample) => {
     try {
       // If this sample is already playing, pause it
-      if (currentlyPlaying === sample.sample_id && isPlaying) {
+      if (currentlyPlaying === sample.id && isPlaying) {
         if (audioRef.current) {
           await audioRef.current.pauseAsync();
           setIsPlaying(false);
@@ -257,13 +240,13 @@ const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
       }
 
       // If a different sample is playing, stop it first
-      if (audioRef.current && currentlyPlaying !== sample.sample_id) {
+      if (audioRef.current && currentlyPlaying !== sample.id) {
         await audioRef.current.unloadAsync();
         audioRef.current = null;
       }
 
       // If this sample is paused, resume it
-      if (currentlyPlaying === sample.sample_id && !isPlaying) {
+      if (currentlyPlaying === sample.id && !isPlaying) {
         if (audioRef.current) {
           await audioRef.current.playAsync();
           setIsPlaying(true);
@@ -272,14 +255,14 @@ const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
       }
 
       // Load and play new sample
-      console.log('Loading audio:', sample.sample_url);
+      console.log('Loading audio:', sample.audioUrl);
       const { sound } = await Audio.Sound.createAsync(
-        { uri: sample.sample_url },
+        { uri: sample.audioUrl },
         { shouldPlay: true, isLooping: true }
       );
       
       audioRef.current = sound;
-      setCurrentlyPlaying(sample.sample_id);
+      setCurrentlyPlaying(sample.id);
       setIsPlaying(true);
       
       console.log('Audio started playing');
@@ -289,9 +272,8 @@ const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
     }
   };
 
-  const renderSampleItem = ({ item }: { item: SavedSampleWithDetails }) => {
-    const { artist, song } = formatSampleName(item.name);
-    const isCurrentlyPlaying = currentlyPlaying === item.sample_id;
+  const renderSampleItem = ({ item }: { item: Sample }) => {
+    const isCurrentlyPlaying = currentlyPlaying === item.id;
     const isThisPlaying = isCurrentlyPlaying && isPlaying;
     
     return (
@@ -300,8 +282,9 @@ const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
           <Icon name="musical-notes" size={24} color="#666" />
         </View>
         <View style={styles.sampleInfo}>
-          <Text style={styles.songName}>{song}</Text>
-          <Text style={styles.artistName}>{artist}</Text>
+          <Text style={styles.songName}>{item.songName}</Text>
+          <Text style={styles.artistName}>{item.artist}</Text>
+          <Text style={styles.genreText}>{item.genre || 'Unknown Genre'}</Text>
         </View>
         <TouchableOpacity 
           style={[styles.playButton, isCurrentlyPlaying && styles.playingButton]} 
@@ -334,18 +317,28 @@ const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
         ]}
       >
         <SafeAreaView style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onBack} style={styles.backButton}>
+              <Icon name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Library Search</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search by name or tag..."
+                placeholder="Search entire library..."
                 placeholderTextColor="#666"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="search"
+                autoFocus={true}
               />
               {searchQuery.length > 0 ? (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -357,30 +350,39 @@ const SavedSamplesScreen: React.FC<SavedSamplesScreenProps> = ({ onBack }) => {
             </View>
           </View>
 
-          {/* Saved Samples List */}
+          {/* Results Count */}
+          {!loading && (
+            <View style={styles.resultsContainer}>
+              <Text style={styles.resultsText}>
+                {searchQuery ? `${filteredSamples.length} results` : `${allSamples.length} total songs`}
+              </Text>
+            </View>
+          )}
+
+          {/* Library Samples List */}
           <View style={styles.listContainer}>
             {loading ? (
               <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>Loading saved samples...</Text>
+                <Text style={styles.loadingText}>Loading library...</Text>
               </View>
             ) : filteredSamples.length > 0 ? (
               <FlatList
                 data={filteredSamples}
                 renderItem={renderSampleItem}
-                keyExtractor={(item) => item.sample_id}
+                keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.listContent}
               />
             ) : (
               <View style={styles.emptyContainer}>
-                <Icon name={searchQuery ? "search-outline" : "heart-outline"} size={48} color="#666" />
+                <Icon name={searchQuery ? "search-outline" : "musical-notes-outline"} size={48} color="#666" />
                 <Text style={styles.emptyText}>
-                  {searchQuery ? "No results found" : "No saved samples yet"}
+                  {searchQuery ? "No results found" : "Library is empty"}
                 </Text>
                 <Text style={styles.emptySubtext}>
                   {searchQuery 
-                    ? `No samples match "${searchQuery}"` 
-                    : "Swipe right on samples to save them"
+                    ? `No songs match "${searchQuery}"` 
+                    : "No songs available in the library"
                   }
                 </Text>
               </View>
@@ -397,10 +399,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 40,
+  },
   searchContainer: {
     paddingHorizontal: 20,
-    marginTop: 60, // Add top margin to account for header
-    marginBottom: 20,
+    marginBottom: 15,
   },
   searchBar: {
     flexDirection: 'row',
@@ -415,7 +439,15 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#fff',
     fontSize: 16,
-    paddingVertical: 0, // Remove default padding
+    paddingVertical: 0,
+  },
+  resultsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  resultsText: {
+    color: '#666',
+    fontSize: 14,
   },
   listContainer: {
     flex: 1,
@@ -454,6 +486,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     textDecorationLine: 'underline',
+    marginBottom: 2,
+  },
+  genreText: {
+    color: '#666',
+    fontSize: 12,
+    opacity: 0.8,
   },
   playButton: {
     width: 40,
@@ -494,4 +532,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SavedSamplesScreen;
+export default LibrarySearchScreen;

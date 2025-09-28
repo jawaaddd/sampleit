@@ -5,7 +5,9 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Video, Audio, ResizeMode } from 'expo-av';
-import { AudioEffects, ReverbPresets } from '../../utils/AudioEffects';
+import { AudioEffects, EchoPresets } from '../../utils/AudioEffects';
+import AudioDataDisplay from '../AudioDataDisplay';
+import { useRealAudioAnalysis } from '../../hooks/useRealAudioAnalysis';
 
 interface VideoPlayerProps {
   videoUri: any; // Default background video
@@ -14,7 +16,7 @@ interface VideoPlayerProps {
   isPlaying: boolean;
   onPlayPause: (playing: boolean) => void;
   pitchValue?: number; // Pitch adjustment in semitones
-  reverbValue?: number; // Reverb control (0-3: Off, Room, Hall, Cathedral)
+  reverbValue?: number; // Echo control (0-3: Off, Short, Medium, Long)
   speedValue?: number; // Speed control (0-4: 0.5x to 1.5x)
 }
 
@@ -32,6 +34,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const audioRef = useRef<Audio.Sound | null>(null);
   const reverbInstancesRef = useRef<any[]>([]);
   const audioEffects = useRef(AudioEffects.getInstance());
+  
+  // Real-time audio analysis
+  const audioData = useRealAudioAnalysis(audioUrl, isPlaying, isActive);
 
   // Set up audio mode and load audio
   useEffect(() => {
@@ -92,36 +97,47 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (audioRef.current) {
         audioRef.current.unloadAsync();
       }
+      
+      // Clean up echo instances when component unmounts or audio URL changes
+      if (reverbInstancesRef.current.length > 0) {
+        console.log('Audio URL change: cleaning up echo instances');
+        audioEffects.current.stopEchoEffect(reverbInstancesRef.current);
+        audioEffects.current.unloadEchoEffect(reverbInstancesRef.current);
+        reverbInstancesRef.current = [];
+      }
     };
   }, [audioUrl]);
 
   // Handle play/pause for audio
   useEffect(() => {
     const handlePlayPause = async () => {
-      if (audioRef.current) {
+      // If echo is active, handle echo instances instead of main audio
+      if (reverbInstancesRef.current.length > 0) {
+        console.log('Echo play/pause - isPlaying:', isPlaying, 'isActive:', isActive);
+        try {
+          if (isPlaying && isActive) {
+            console.log('Playing echo effect...');
+            await audioEffects.current.playEchoEffect(reverbInstancesRef.current);
+            console.log('Echo play command sent');
+          } else {
+            console.log('Pausing echo effect...');
+            await audioEffects.current.stopEchoEffect(reverbInstancesRef.current);
+            console.log('Echo pause command sent');
+          }
+        } catch (playError) {
+          console.log('Echo play/pause error:', playError);
+        }
+      } else if (audioRef.current) {
+        // Normal audio play/pause when no echo is active
         console.log('Audio play/pause - isPlaying:', isPlaying, 'isActive:', isActive);
         try {
           if (isPlaying && isActive) {
             console.log('Playing audio...');
             await audioRef.current.playAsync();
-            
-            
-            // Play reverb instances if they exist
-            if (reverbInstancesRef.current.length > 0) {
-              await audioEffects.current.playReverbEffect(reverbInstancesRef.current);
-            }
-            
             console.log('Audio play command sent');
           } else {
             console.log('Pausing audio...');
             await audioRef.current.pauseAsync();
-            
-            
-            // Stop reverb instances if they exist
-            if (reverbInstancesRef.current.length > 0) {
-              await audioEffects.current.stopReverbEffect(reverbInstancesRef.current);
-            }
-            
             console.log('Audio pause command sent');
           }
         } catch (playError) {
@@ -136,9 +152,29 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // Stop audio when video becomes inactive
   useEffect(() => {
-    if (!isActive && audioRef.current) {
-      console.log('Video became inactive, stopping audio');
-      audioRef.current.stopAsync();
+    if (!isActive) {
+      console.log('Video became inactive, stopping all audio');
+      
+      // Stop main audio if it exists
+      if (audioRef.current) {
+        audioRef.current.stopAsync();
+      }
+      
+      // Stop and clean up echo instances
+      if (reverbInstancesRef.current.length > 0) {
+        console.log('Video became inactive, cleaning up echo instances');
+        audioEffects.current.stopEchoEffect(reverbInstancesRef.current);
+        audioEffects.current.unloadEchoEffect(reverbInstancesRef.current);
+        reverbInstancesRef.current = [];
+      }
+    } else if (isActive) {
+      // Video became active - make sure no old echo instances are running
+      if (reverbInstancesRef.current.length > 0) {
+        console.log('Video became active, cleaning up any old echo instances');
+        audioEffects.current.stopEchoEffect(reverbInstancesRef.current);
+        audioEffects.current.unloadEchoEffect(reverbInstancesRef.current);
+        reverbInstancesRef.current = [];
+      }
     }
   }, [isActive]);
 
@@ -223,60 +259,81 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     applyPitchChange();
   }, [pitchValue, isActive, audioUrl]);
 
-  // Handle reverb changes
+  // Handle echo changes
   useEffect(() => {
-    const applyReverbChange = async () => {
+    const applyEchoChange = async () => {
       if (audioRef.current && isActive && audioUrl) {
         try {
-          const reverbTypes = ['Off', 'Room', 'Hall', 'Cathedral'];
-          console.log(`VideoPlayer: Applying reverb change: ${reverbTypes[reverbValue]}`);
+          const echoTypes = ['Off', 'Short', 'Medium', 'Long'];
+          console.log(`VideoPlayer: Applying echo change: ${echoTypes[reverbValue]} for video ${audioUrl}`);
           
-          // Clean up existing reverb instances
+          // Clean up existing echo instances
           if (reverbInstancesRef.current.length > 0) {
-            await audioEffects.current.unloadReverbEffect(reverbInstancesRef.current);
+            console.log('Cleaning up existing echo instances before applying new echo');
+            await audioEffects.current.stopEchoEffect(reverbInstancesRef.current);
+            await audioEffects.current.unloadEchoEffect(reverbInstancesRef.current);
             reverbInstancesRef.current = [];
           }
           
-          // Apply reverb effect if not off
+          // Apply echo effect if not off
           if (reverbValue > 0) {
-            let reverbSettings;
+            let echoSettings;
             
             switch (reverbValue) {
-              case 1: // Room
-                reverbSettings = ReverbPresets.ROOM;
+              case 1: // Short
+                echoSettings = EchoPresets.SHORT;
                 break;
-              case 2: // Hall
-                reverbSettings = ReverbPresets.HALL;
+              case 2: // Medium
+                echoSettings = EchoPresets.MEDIUM;
                 break;
-              case 3: // Cathedral
-                reverbSettings = ReverbPresets.CATHEDRAL;
+              case 3: // Long
+                echoSettings = EchoPresets.LONG;
                 break;
               default:
-                reverbSettings = ReverbPresets.OFF;
+                echoSettings = EchoPresets.OFF;
             }
             
-            // Create reverb effect instances
-            const reverbInstances = await audioEffects.current.createReverbEffect(
+            // Stop the original audio to prevent double playback
+            if (audioRef.current) {
+              console.log('Stopping original audio for echo effect');
+              await audioRef.current.stopAsync();
+            }
+            
+            // Create echo effect instances
+            const echoInstances = await audioEffects.current.createEchoEffect(
               audioUrl, 
-              reverbSettings
+              echoSettings
             );
             
-            reverbInstancesRef.current = reverbInstances;
+            reverbInstancesRef.current = echoInstances;
             
-            console.log(`VideoPlayer: Reverb effect created with ${reverbInstances.length} instances`);
+            console.log(`VideoPlayer: Echo effect created with ${echoInstances.length} instances`);
+            
+            // Play the echo effect if audio should be playing
+            if (isPlaying) {
+              console.log('Auto-playing echo effect');
+              await audioEffects.current.playEchoEffect(echoInstances);
+            }
           } else {
-            console.log('VideoPlayer: Reverb turned off');
+            // Echo turned off - make sure to stop and clean up any existing echo instances
+            if (reverbInstancesRef.current.length > 0) {
+              console.log('VideoPlayer: Stopping and cleaning up echo instances');
+              await audioEffects.current.stopEchoEffect(reverbInstancesRef.current);
+              await audioEffects.current.unloadEchoEffect(reverbInstancesRef.current);
+              reverbInstancesRef.current = [];
+            }
+            console.log('VideoPlayer: Echo turned off');
           }
           
         } catch (error) {
-          console.error('VideoPlayer: Error applying reverb change:', error);
+          console.error('VideoPlayer: Error applying echo change:', error);
         }
       } else {
-        console.log(`VideoPlayer: Skipping reverb change - audioRef: ${!!audioRef.current}, isActive: ${isActive}`);
+        console.log(`VideoPlayer: Skipping echo change - audioRef: ${!!audioRef.current}, isActive: ${isActive}`);
       }
     };
     
-    applyReverbChange();
+    applyEchoChange();
   }, [reverbValue, isActive, audioUrl]);
 
   // Handle speed changes (now using the limited rate approach for better control)
@@ -367,6 +424,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         volume={0.0}
         rate={1.0}
         isMuted={true}
+      />
+      
+      {/* Real-time Audio Data Display */}
+      <AudioDataDisplay
+        audioData={audioData}
+        isPlaying={isPlaying}
+        isActive={isActive}
       />
       
       {/* Play/Pause overlay */}

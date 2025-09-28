@@ -6,12 +6,15 @@ import {
   FlatList,
   Alert,
   Animated,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import Icon from 'react-native-vector-icons/Ionicons';
 import VideoPlayer from '../components/video/VideoPlayer';
 import Footer from '../components/Footer';
 import SavedSamplesScreen from './SavedSamplesScreen';
+import LibrarySearchScreen from './LibrarySearchScreen';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,10 +49,52 @@ const MainScreen = () => {
   const [samples, setSamples] = useState<Sample[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSavedSamples, setShowSavedSamples] = useState(false);
+  const [showSearchScreen, setShowSearchScreen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [pitchValue, setPitchValue] = useState(0);
   const [reverbValue, setReverbValue] = useState(0); // Start with reverb off
   const [speedValue, setSpeedValue] = useState(2); // Start at normal speed (1x)
   const flatListRef = useRef<FlatList>(null);
+
+  // Format sample name to extract artist and song (same logic as SavedSamplesScreen)
+  const formatSampleName = (name: string) => {
+    // Remove file extension
+    const withoutExt = name.replace(/\.[^/.]+$/, '');
+    
+    // Try different formats:
+    // 1. artist_songname.mp3 format
+    if (withoutExt.includes('_')) {
+      const parts = withoutExt.split('_');
+      if (parts.length >= 2) {
+        // Join all parts except the last one as artist, last part as song
+        const artist = parts.slice(0, -1).join('_').replace(/_/g, ' ');
+        const song = parts[parts.length - 1].replace(/_/g, ' ');
+        return {
+          artist: artist.trim(),
+          song: song.trim(),
+        };
+      }
+    }
+    
+    // 2. artist - song format (original format)
+    if (withoutExt.includes(' - ')) {
+      const withoutBrackets = withoutExt.replace(/\[.*?\]/g, ''); // Remove [dDlvR43LbpA] part
+      const parts = withoutBrackets.split(' - ');
+      
+      if (parts.length >= 2) {
+        return {
+          artist: parts[0].trim(),
+          song: parts[1].trim(),
+        };
+      }
+    }
+    
+    // 3. Fallback: treat entire name as song
+    return {
+      artist: 'Unknown Artist',
+      song: withoutExt.replace(/_/g, ' ').trim(),
+    };
+  };
   
   // Animation values
   const slideAnimation = useRef(new Animated.Value(0)).current;
@@ -59,7 +104,7 @@ const MainScreen = () => {
   const saveSample = async (sample: Sample) => {
     try {
       console.log('Saving sample:', sample);
-      const response = await fetch('http://10.0.0.60:8000/user/saves', {
+      const response = await fetch('http://35.0.131.210:8000/user/saves', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +139,7 @@ const MainScreen = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        const response = await fetch('http://10.0.0.60:8000/samples/', {
+        const response = await fetch('http://35.0.131.210:8000/samples/', {
           signal: controller.signal,
         });
         
@@ -109,13 +154,16 @@ const MainScreen = () => {
         console.log('Backend samples received:', backendSamples);
         
         // Transform backend data to frontend format
-        const transformedSamples: Sample[] = backendSamples.map((sample) => ({
-          id: sample.id.toString(),
-          audioUrl: sample.sample_url,
-          artist: sample.name.split(' - ')[0] || 'Unknown Artist',
-          songName: sample.name.split(' - ')[1] || sample.name,
-          genre: sample.tags || 'Unknown Genre',
-        }));
+        const transformedSamples: Sample[] = backendSamples.map((sample) => {
+          const { artist, song } = formatSampleName(sample.name);
+          return {
+            id: sample.id.toString(),
+            audioUrl: sample.sample_url,
+            artist: artist,
+            songName: song,
+            genre: sample.tags || 'Unknown Genre',
+          };
+        });
         
         console.log('Transformed samples:', transformedSamples);
         setSamples(transformedSamples);
@@ -271,6 +319,25 @@ const MainScreen = () => {
     );
   }
 
+  // Handle artist click - open search with artist name
+  const handleArtistClick = (artistName: string) => {
+    setSearchQuery(artistName);
+    setShowSearchScreen(true);
+  };
+
+  // Show library search screen if toggled
+  if (showSearchScreen) {
+    return (
+      <LibrarySearchScreen 
+        initialSearchQuery={searchQuery}
+        onBack={() => {
+          setShowSearchScreen(false);
+          setSearchQuery(''); // Clear search query when going back
+        }}
+      />
+    );
+  }
+
   return (
     <PanGestureHandler
       onGestureEvent={onGestureEvent}
@@ -290,6 +357,14 @@ const MainScreen = () => {
           ]}
         >
           <SafeAreaView style={styles.container}>
+            {/* Search Button */}
+            <TouchableOpacity 
+              style={styles.searchButton}
+              onPress={() => setShowSearchScreen(true)}
+            >
+              <Icon name="search-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+            
             <View style={styles.contentContainer}>
               {loading ? (
                 <View style={styles.loadingContainer}>
@@ -328,13 +403,14 @@ const MainScreen = () => {
                        currentSample={samples[currentIndex]}
                        isPlaying={isPlaying}
                        onPlayPause={setIsPlaying}
-           pitchValue={pitchValue}
-           onPitchChange={setPitchValue}
-           reverbValue={reverbValue}
-           onReverbChange={setReverbValue}
-           speedValue={speedValue}
-           onSpeedChange={setSpeedValue}
-           onUploadSuccess={handleUploadSuccess}
+                       pitchValue={pitchValue}
+                       onPitchChange={setPitchValue}
+                       reverbValue={reverbValue}
+                       onReverbChange={setReverbValue}
+                       speedValue={speedValue}
+                       onSpeedChange={setSpeedValue}
+                       onUploadSuccess={handleUploadSuccess}
+                       onArtistClick={handleArtistClick}
                      />
                    )}
           </SafeAreaView>
@@ -393,6 +469,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  searchButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1000,
+    width: 44,
+    height: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   contentContainer: {
     flex: 1,

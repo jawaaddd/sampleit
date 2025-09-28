@@ -39,10 +39,11 @@ interface FooterProps {
   speedValue?: number;
   onSpeedChange?: (speed: number) => void;
   onUploadSuccess?: () => void;
+  onArtistClick?: (artistName: string) => void;
 }
 
 // Footer Component - matches Figma structure: footer → details, Buttons
-const Footer: React.FC<FooterProps> = ({ currentSample, isPlaying, onPlayPause, pitchValue = 0, onPitchChange, reverbValue = 0, onReverbChange, speedValue = 2, onSpeedChange, onUploadSuccess }) => {
+const Footer: React.FC<FooterProps> = ({ currentSample, isPlaying, onPlayPause, pitchValue = 0, onPitchChange, reverbValue = 0, onReverbChange, speedValue = 2, onSpeedChange, onUploadSuccess, onArtistClick }) => {
   console.log('Footer: Current pitchValue:', pitchValue);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState('');
@@ -210,7 +211,7 @@ const Footer: React.FC<FooterProps> = ({ currentSample, isPlaying, onPlayPause, 
       {/* Details Section - matches Figma details structure */}
       <View style={styles.details}>
         <View style={styles.textIconGroup}>
-          <TouchableOpacity onPress={() => console.log('Artist pressed')}>
+          <TouchableOpacity onPress={() => onArtistClick && onArtistClick(currentSample.artist)}>
             <Text style={styles.artistText}>{currentSample.artist}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => console.log('Song pressed')}>
@@ -421,14 +422,14 @@ const Footer: React.FC<FooterProps> = ({ currentSample, isPlaying, onPlayPause, 
                    <View style={styles.uploadOptionsContainer}>
                      <View style={styles.pitchControls}>
                        <Text style={styles.pitchDisplay}>
-                         Reverb: {reverbValue === 0 ? 'Off' : reverbValue === 1 ? 'Room' : reverbValue === 2 ? 'Hall' : 'Cathedral'}
+                         Echo: {reverbValue === 0 ? 'Off' : reverbValue === 1 ? 'Short' : reverbValue === 2 ? 'Medium' : 'Long'}
                        </Text>
                        
                        <View style={styles.pitchButtonsRow}>
                          <TouchableOpacity 
                            style={[styles.pitchButton, reverbValue === 0 && styles.activeButton]}
                            onPress={() => {
-                             console.log('Reverb: Off');
+                             console.log('Echo: Off');
                              if (onReverbChange) onReverbChange(0);
                            }}
                          >
@@ -438,31 +439,31 @@ const Footer: React.FC<FooterProps> = ({ currentSample, isPlaying, onPlayPause, 
                          <TouchableOpacity 
                            style={[styles.pitchButton, reverbValue === 1 && styles.activeButton]}
                            onPress={() => {
-                             console.log('Reverb: Room');
+                             console.log('Echo: Short');
                              if (onReverbChange) onReverbChange(1);
                            }}
                          >
-                           <Text style={styles.pitchButtonText}>Room</Text>
+                           <Text style={styles.pitchButtonText}>Short</Text>
                          </TouchableOpacity>
                          
                          <TouchableOpacity 
                            style={[styles.pitchButton, reverbValue === 2 && styles.activeButton]}
                            onPress={() => {
-                             console.log('Reverb: Hall');
+                             console.log('Echo: Medium');
                              if (onReverbChange) onReverbChange(2);
                            }}
                          >
-                           <Text style={styles.pitchButtonText}>Hall</Text>
+                           <Text style={styles.pitchButtonText}>Medium</Text>
                          </TouchableOpacity>
                          
                          <TouchableOpacity 
                            style={[styles.pitchButton, reverbValue === 3 && styles.activeButton]}
                            onPress={() => {
-                             console.log('Reverb: Cathedral');
+                             console.log('Echo: Long');
                              if (onReverbChange) onReverbChange(3);
                            }}
                          >
-                           <Text style={styles.pitchButtonText}>Cathedral</Text>
+                           <Text style={styles.pitchButtonText}>Long</Text>
                          </TouchableOpacity>
                        </View>
                      </View>
