@@ -8,7 +8,6 @@ import { Video, Audio } from 'expo-av';
 
 interface VideoPlayerProps {
   videoUri: any; // Changed to any to handle require() objects
-  audioUri: any; // Changed to any to handle require() objects
   isActive: boolean;
   isPlaying: boolean;
   onPlayPause: (playing: boolean) => void;
@@ -16,15 +15,13 @@ interface VideoPlayerProps {
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoUri,
-  audioUri,
   isActive,
   isPlaying,
   onPlayPause,
 }) => {
   const videoRef = useRef<Video>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
 
-  // Set up audio mode
+  // Set up audio mode for video playback
   useEffect(() => {
     const setupAudio = async () => {
       try {
@@ -42,50 +39,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setupAudio();
   }, []);
 
-  useEffect(() => {
-    if (isActive) {
-      // Initialize audio
-      const loadAudio = async () => {
-        if (audioUri) {
-          try {
-            const { sound } = await Audio.Sound.createAsync(
-              audioUri,
-              { shouldPlay: isPlaying, isLooping: false }
-            );
-            soundRef.current = sound;
-            console.log('Audio loaded for active video');
-          } catch (error) {
-            console.log('Failed to load sound', error);
-          }
-        }
-      };
-      loadAudio();
-    } else {
-      // Clean up audio when not active
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-        soundRef.current = null;
-        console.log('Audio unloaded for inactive video');
-      }
-    }
-
-    return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-      }
-    };
-  }, [isActive, audioUri]);
-
-  useEffect(() => {
-    if (soundRef.current) {
-      if (isPlaying) {
-        soundRef.current.playAsync();
-      } else {
-        soundRef.current.pauseAsync();
-      }
-    }
-  }, [isPlaying]);
-
   const handlePress = () => {
     onPlayPause(!isPlaying);
   };
@@ -99,9 +52,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         resizeMode="cover"
         isLooping
         shouldPlay={isPlaying}
-        volume={0.0}
+        volume={1.0}
         rate={1.0}
-        muted={true}
+        muted={false}
       />
       
       {/* Play/Pause overlay */}
