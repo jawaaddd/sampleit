@@ -34,6 +34,9 @@ class SavedSampleResponse(BaseModel):
     user_id: str
     save_date: str
 
+class SaveSampleRequest(BaseModel):
+    user_id: int
+    sample_id: str
 
 
 app = FastAPI()
@@ -114,8 +117,8 @@ def getSavedSamples(user_id: str):
     return {}
 
 @app.post("/user/saves/", response_model=SavedSampleResponse)
-def saveSample(user_id: str, sample_id: str, db: Session = Depends(get_db)):
-    saved = SavedSample(user_id=user_id, sample_id=sample_id)
+def saveSample(request: SaveSampleRequest, db: Session = Depends(get_db)):
+    saved = SavedSample(user_id=request.user_id, sample_id=request.sample_id)
     db.add(saved)
     db.commit()
     db.refresh(saved)
@@ -124,6 +127,7 @@ def saveSample(user_id: str, sample_id: str, db: Session = Depends(get_db)):
         user_id=str(saved.user_id),
         save_date=saved.save_date.isoformat()
     )
+
 
 @app.on_event("startup")
 def on_startup():
